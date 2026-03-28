@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đời Không Có Nút "Hoàn Tác" - Tác phẩm</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --bg-color: #f4f1ea;
+            --text-color: #333;
+            --font-serif: 'Georgia', 'Times New Roman', Times, serif;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 30px;
+        }
+
+        h1.book-title {
+            font-family: var(--font-serif);
+            font-size: 3em;
+            font-weight: 700;
+            font-style: italic;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .author-name {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+
+        .chapter-entry {
+            background: white;
+            padding: 40px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .chapter-entry h2 {
+            font-family: var(--font-serif);
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 15px;
+        }
+
+        .chapter-content {
+            font-family: var(--font-serif);
+            font-size: 1.15em;
+            white-space: pre-wrap;
+        }
+
+        .admin-section {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            margin-top: 80px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .hidden { display: none !important; }
+        #loading { text-align: center; font-style: italic; color: #7f8c8d; }
+    </style>
+</head>
+<body><div class="main-wrapper">
+    <header>
+        <h1 class="book-title">Đời Không Có Nút "Hoàn Tác"</h1>
+        <div class="author-name">Bản thảo trực tuyến - TZ</div>
+    </header>
+
+    <div id="loading">Đang tải nội dung...</div>
+    <div id="reader-area"></div>
+
+    <div class="admin-section">
+        <div id="login-form">
+            <h3>Tác giả Đăng nhập</h3>
+            <input type="email" id="admin-email" placeholder="Email admin">
+            <input type="password" id="admin-password" placeholder="Password">
+            <button onclick="login()">Đăng nhập</button>
+        </div>
+
+        <div id="editor-form" class="hidden">
+            <h3>Thêm chương mới</h3>
+            <input type="text" id="new-chapter-title" placeholder="Tên chương sách">
+            <textarea id="new-chapter-content" placeholder="Nội dung chương..."></textarea>
+            <button onclick="publishChapter()">Đăng tải</button>
+            <button onclick="logout()" style="background:#95a5a6; margin-left:10px;">Đăng xuất</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CẤU HÌNH ĐÃ THAY THẾ TỪ ẢNH CỦA BẠN ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDdWmJ80I9MKwzkGYt0rsoS_0kQRXTjUfE",
+        authDomain: "sach-f497e.firebaseapp.com",
+        projectId: "sach-f497e",
+        storageBucket: "sach-f497e.firebasestorage.app",
+        messagingSenderId: "1067838860048",
+        appId: "1:1067838860048:web:a295015ab5be8576f09395",
+        measurementId: "G-8M52R8T7TQ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    function login() {
+        const email = document.getElementById('admin-email').value;
+        const password = document.getElementById('admin-password').value;
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => alert("Đã đăng nhập!"))
+            .catch(err => alert("Lỗi: " + err.message));
+    }
+
+    function logout() { auth.signOut(); }
+
+    auth.onAuthStateChanged(user => {
+        if (user && user.email === "tuuyen0004@gmail.com") {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('editor-form').classList.remove('hidden');
+        } else {
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('editor-form').classList.add('hidden');
+        }
+    });
+
+    function publishChapter() {
+        const title = document.getElementById('new-chapter-title').value;
+        const content = document.getElementById('new-chapter-content').value;
+        if (!title || !content) return alert("Vui lòng nhập đủ!");
+
+        db.collection("book_chapters").add({
+            title: title,
+            content: content,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {alert("Đã đăng bài!");
+            document.getElementById('new-chapter-title').value = "";
+            document.getElementById('new-chapter-content').value = "";
+        });
+    }
+
+    function loadChapters() {
+        db.collection("book_chapters").orderBy("createdAt", "asc").onSnapshot(snap => {
+            document.getElementById('loading').classList.add('hidden');
+            const area = document.getElementById('reader-area');
+            area.innerHTML = "";
+            snap.forEach(doc => {
+                const c = doc.data();
+                area.innerHTML += `
+                    <div class="chapter-entry">
+                        <h2>${c.title}</h2>
+                        <div class="chapter-content">${c.content}</div>
+                    </div>`;
+            });
+        });
+    }
+    loadChapters();
+</script>
+</body>
+</html>

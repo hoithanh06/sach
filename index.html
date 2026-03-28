@@ -3,97 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đời Không Có Nút "Hoàn Tác" - Tác phẩm</title>
+    <title>Đời Không Có Nút "Hoàn Tác"</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --primary-color: #2c3e50; --bg-color: #f4f1ea; --text-color: #333; --font-serif: 'Georgia', serif; }
-        body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.8; margin: 0; }
-        .main-wrapper { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-        header { text-align: center; margin-bottom: 50px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
-        h1 { font-family: var(--font-serif); font-size: 2.5em; color: var(--primary-color); }
-        .chapter-entry { background: white; padding: 30px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .chapter-content { font-family: var(--font-serif); white-space: pre-wrap; font-size: 1.1em; }
-        .admin-section { background: #fff; padding: 25px; border-radius: 8px; margin-top: 50px; border: 1px solid #ddd; }
-        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: var(--primary-color); color: white; border: none; padding: 12px 25px; border-radius: 4px; cursor: pointer; }
+        :root { --main: #2c3e50; --bg: #fdfaf3; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: #333; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 700px; margin: 0 auto; }
+        header { text-align: center; padding: 40px 0; border-bottom: 2px solid #eee; margin-bottom: 30px; }
+        h1 { font-style: italic; color: var(--main); font-size: 2.2em; }
+        .chapter { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .chapter h2 { color: var(--main); margin-top: 0; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+        .content { white-space: pre-wrap; font-size: 1.1em; color: #444; }
+        .admin-box { background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-top: 60px; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { background: var(--main); color: #fff; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
         .hidden { display: none !important; }
+        #loading { text-align: center; font-style: italic; color: #888; }
     </style>
 </head>
 <body>
 
-<div class="main-wrapper">
+<div class="container">
     <header>
         <h1>Đời Không Có Nút "Hoàn Tác"</h1>
-        <p>Bản thảo trực tuyến - TZ</p>
+        <p>Tác giả: <b>T.U</b></p>
     </header>
 
-    <div id="reader-area"></div>
+    <div id="loading">Đang kết nối thư viện...</div>
+    <div id="output"></div>
 
-    <div class="admin-section">
-        <div id="login-form">
-            <h3>Đăng nhập tác giả</h3>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="pass" placeholder="Mật khẩu">
-            <button onclick="login()">Đăng nhập</button>
+    <div class="admin-box">
+        <div id="login-ui">
+            <h3>Quản trị viên</h3>
+            <input type="email" id="email" placeholder="Email: tuuyen0004@gmail.com">
+            <input type="password" id="password" placeholder="Mật khẩu">
+            <button onclick="handleLogin()">Đăng nhập</button>
         </div>
 
-        <div id="editor-form" class="hidden">
-            <h3>Thêm chương mới</h3>
-            <input type="text" id="title" placeholder="Tên chương">
-            <textarea id="content" placeholder="Nội dung..."></textarea>
-            <button onclick="upload()">Đăng bài</button>
-            <button onclick="logout()" style="background:#7f8c8d; margin-left:10px;">Đăng xuất</button>
+        <div id="editor-ui" class="hidden">
+            <h3>Viết chương mới</h3>
+            <input type="text" id="title" placeholder="Tên chương (VD: Chương 1:...)">
+            <textarea id="text" rows="8" placeholder="Nội dung bản thảo..."></textarea>
+            <button onclick="handlePost()">Đăng bản thảo</button>
+            <button onclick="handleLogout()" style="background:#888; margin-left:10px;">Thoát</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Cấu hình từ ảnh bạn cung cấp
-    const firebaseConfig = {
+    // --- CẤU HÌNH FIREBASE TỪ ẢNH CỦA BẠN ---const firebaseConfig = {
         apiKey: "AIzaSyDdWmJ80I9MKwzkGYt0rsoS_0kQRXTjUfE",
         authDomain: "sach-f497e.firebaseapp.com",
         projectId: "sach-f497e",
-        projectId: "sach-f497e",storageBucket: "sach-f497e.firebasestorage.app",
+        storageBucket: "sach-f497e.firebasestorage.app",
         messagingSenderId: "1067838860048",
         appId: "1:1067838860048:web:a295015ab5be8576f09395",
         measurementId: "G-8M52R8T7TQ"
     };
 
+    // Khởi tạo
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    function login() {
-        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('pass').value)
-            .catch(e => alert("Lỗi đăng nhập: " + e.message));
+    // 1. Đăng nhập
+    function handleLogin() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        auth.signInWithEmailAndPassword(e, p)
+            .then(() => alert("Đăng nhập thành công!"))
+            .catch(err => alert("Lỗi: " + err.message));
     }
 
-    function logout() { auth.signOut(); }
+    // 2. Đăng xuất
+    function handleLogout() { auth.signOut(); }
 
+    // 3. Theo dõi đăng nhập
     auth.onAuthStateChanged(user => {
-        const isMe = user && user.email === "tuuyen0004@gmail.com";
-        document.getElementById('login-form').classList.toggle('hidden', isMe);
-        document.getElementById('editor-form').classList.toggle('hidden', !isMe);
+        const isOwner = user && user.email === "tuuyen0004@gmail.com";
+        document.getElementById('login-ui').classList.toggle('hidden', isOwner);
+        document.getElementById('editor-ui').classList.toggle('hidden', !isOwner);
     });
 
-    function upload() {
+    // 4. Đăng bài lên Firestore
+    function handlePost() {
         const t = document.getElementById('title').value;
-        const c = document.getElementById('content').value;
-        if(!t || !c) return alert("Điền đủ thông tin!");
-        db.collection("chapters").add({ title: t, content: c, date: firebase.firestore.FieldValue.serverTimestamp() })
-          .then(() => { alert("Xong!"); location.reload(); });
+        const c = document.getElementById('text').value;
+        if(!t || !c) return alert("Vui lòng nhập đủ nội dung!");
+
+        db.collection("my_book").add({
+            title: t,
+            content: c,
+            time: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            alert("Đã đăng bài thành công!");
+            document.getElementById('title').value = "";
+            document.getElementById('text').value = "";
+        }).catch(err => alert("Lỗi lưu bài: " + err.message));
     }
 
-    db.collection("chapters").orderBy("date", "asc").onSnapshot(snap => {
-        const area = document.getElementById('reader-area');
-        area.innerHTML = "";
+    // 5. Hiển thị danh sách chương
+    db.collection("my_book").orderBy("time", "asc").onSnapshot(snap => {
+        document.getElementById('loading').classList.add('hidden');
+        const out = document.getElementById('output');
+        out.innerHTML = "";
         snap.forEach(doc => {
             const data = doc.data();
-            area.innerHTML += `<div class="chapter-entry"><h2>${data.title}</h2><div class="chapter-content">${data.content}</div></div>`;
+            out.innerHTML += `
+                <div class="chapter">
+                    <h2>${data.title}</h2>
+                    <div class="content">${data.content}</div>
+                </div>`;
         });
     });
 </script>
